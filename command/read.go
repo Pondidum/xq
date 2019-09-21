@@ -3,8 +3,6 @@ package command
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
-	"os"
 	"strings"
 
 	"github.com/antchfx/xmlquery"
@@ -70,20 +68,9 @@ func (c *ReadCommand) Run(args []string) int {
 		return 1
 	}
 
-	var rawBytes []byte
-
-	if file == "-" {
-		rawBytes, err = ioutil.ReadAll(os.Stdin)
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Failed to read stdin: %v", err))
-			return 1
-		}
-	} else {
-		rawBytes, err = ioutil.ReadFile(file)
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Failed to read file: %v", err))
-			return 1
-		}
+	rawBytes, ok := c.ReadFile(file)
+	if ok == false {
+		return 1
 	}
 
 	doc, err := xmlquery.Parse(bytes.NewReader(rawBytes))
@@ -92,10 +79,16 @@ func (c *ReadCommand) Run(args []string) int {
 		return 1
 	}
 
-	list := xmlquery.Find(doc, exp.String())
+	result := exp.Evaluate(xmlquery.CreateXPathNavigator(doc))
+	iterator, ok := result.(*xpath.NodeIterator)
 
-	for _, node := range list {
-		c.UI.Output(node.InnerText())
+	if ok {
+		for iterator.MoveNext() {
+			navigator := iterator.Current()
+			c.UI.Output(navigator.Value())
+		}
+	} else {
+		c.UI.Output(fmt.Sprintf("%+v", result))
 	}
 
 	return 0

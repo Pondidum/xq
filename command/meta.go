@@ -2,14 +2,18 @@ package command
 
 import (
 	"bufio"
+	"fmt"
 	"io"
+	"io/ioutil"
+	"os"
 
 	"github.com/mitchellh/cli"
 	"github.com/spf13/pflag"
 )
 
 type Meta struct {
-	UI cli.Ui
+	UI        cli.Ui
+	testStdin io.Reader
 }
 
 func (m *Meta) FlagSet(name string) *pflag.FlagSet {
@@ -29,4 +33,35 @@ func (m *Meta) FlagSet(name string) *pflag.FlagSet {
 	f.SetOutput(errW)
 
 	return f
+}
+
+func (m *Meta) ReadFile(path string) ([]byte, bool) {
+
+	var rawBytes []byte
+	var err error
+
+	if path == "-" {
+
+		var reader io.Reader = os.Stdin
+
+		if m.testStdin != nil {
+			reader = m.testStdin
+		}
+
+		rawBytes, err = ioutil.ReadAll(reader)
+
+		if err != nil {
+			m.UI.Error(fmt.Sprintf("Failed to read stdin: %v", err))
+			return nil, false
+		}
+
+	} else {
+		rawBytes, err = ioutil.ReadFile(path)
+		if err != nil {
+			m.UI.Error(fmt.Sprintf("Failed to read file: %v", err))
+			return nil, false
+		}
+	}
+
+	return rawBytes, true
 }
