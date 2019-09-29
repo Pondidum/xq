@@ -22,8 +22,6 @@ Usage: xq read [options] <xpath> <file_path>
 
   If the supplied path is "-", then the file is read from stdin.  Otherwise
   it is read from the path specified.
-
-Read Options:
 `
 
 	return strings.TrimSpace(helpText)
