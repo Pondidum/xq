@@ -1,0 +1,10 @@
+build: off
+
+image:
+  - ubuntu
+  - Visual Studio 2017 # "windows"
+
+build_script:
+  - sh build.sh
+
+test: off
