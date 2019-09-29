@@ -33,6 +33,10 @@ go build \
   -ldflags "$ldflags" \
   -o xq
 
+echo "==> Running Vet"
+
+go vet
+
 echo "==> Running Tests"
 
 go test -v ./...
