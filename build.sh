@@ -1,8 +1,12 @@
 #! /bin/bash
 
-set -eu
+set -e
 
 export GO111MODULE=on
+echo "==> Read Environment Information"
+echo "    Go Modules: $GO111MODULE"
+echo "    CI_WINDOWS: $CI_WINDOWS"
+echo "    CI_LINUX: $CI_LINUX"
 
 echo "==> Read Git Infomation"
 
@@ -30,8 +34,7 @@ go get -v -d .
 
 echo "==> Building"
 go build \
-  -ldflags "$ldflags" \
-  -o xq
+  -ldflags "$ldflags"
 
 echo "==> Running Vet"
 
@@ -41,4 +44,14 @@ echo "==> Running Tests"
 
 go test -v ./...
 
-echo "==> Success"
+echo "==> Packaging Artifacts"
+
+if [ "$CI_LINUX" = "true" ]; then
+  echo "    Creating Linux Artifact"
+  7z a "xq-$git_version-linux.zip" $APPVEYOR_BUILD_FOLDER/xq
+elif [ "$CI_WINDOWS" = "True" ]; then
+  echo "    Creating Windows Artifact"
+  7z a "xq-$git_version-windows.zip" $APPVEYOR_BUILD_FOLDER/xq.exe
+fi
+
+echo "==> Done"

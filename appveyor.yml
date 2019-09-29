@@ -8,3 +8,6 @@ build_script:
   - sh build.sh
 
 test: off
+
+artifacts:
+  - path: xq-*.zip
