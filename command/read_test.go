@@ -40,7 +40,7 @@ func TestReadCommand_Fails(t *testing.T) {
 		assert.Equal(t, 1, code)
 	}
 	assert.Empty(t, ui.OutputWriter.String())
-	assert.Contains(t, ui.ErrorWriter.String(), "Failed to read file: open /this/doesnt/exist: no such file or directory\n")
+	assert.Contains(t, ui.ErrorWriter.String(), "Failed to read file: open /this/doesnt/exist: ")
 	ui.ErrorWriter.Reset()
 
 	file, err := ioutil.TempFile("", "xq-source")
@@ -80,13 +80,13 @@ func TestReadCommand_Run(t *testing.T) {
 	assert.Equal(t, "1\n2\n3\n4\n", ui.OutputWriter.String())
 	ui.OutputWriter.Reset()
 
-	if code := cmd.Run([]string{"count(//book))", file.Name()}); code != 0 {
+	if code := cmd.Run([]string{"count(//book)", file.Name()}); code != 0 {
 		assert.Equal(t, 0, code)
 	}
 	assert.Equal(t, "4\n", ui.OutputWriter.String())
 	ui.OutputWriter.Reset()
 
-	if code := cmd.Run([]string{"count(//book[@type=\"short\"]))", file.Name()}); code != 0 {
+	if code := cmd.Run([]string{"count(//book[@type=\"short\"])", file.Name()}); code != 0 {
 		assert.Equal(t, 0, code)
 	}
 	assert.Equal(t, "2\n", ui.OutputWriter.String())
