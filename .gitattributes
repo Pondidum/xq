@@ -2,3 +2,5 @@
 
 *.mod text
 *.sum text
+
+*.sh eol=lf
