@@ -2,6 +2,7 @@ package command
 
 import (
 	"bytes"
+	"encoding/xml"
 	"fmt"
 	"strings"
 
@@ -18,7 +19,7 @@ func (c *ReadCommand) Help() string {
 	helpText := `
 Usage: xq read [options] <xpath> <file_path>
 
-  Runs the specified <xpath> query agains the specified <file_path>.
+  Runs the specified <xpath> query against the specified <file_path>.
 
   If the supplied path is "-", then the file is read from stdin.  Otherwise
   it is read from the path specified.
@@ -90,4 +91,43 @@ func (c *ReadCommand) Run(args []string) int {
 	}
 
 	return 0
+}
+
+func Render(buffer *bytes.Buffer, nav xpath.NodeNavigator) {
+
+	if nav.NodeType() == xpath.TextNode {
+		xml.EscapeText(buffer, []byte(strings.TrimSpace(nav.Value())))
+		return
+	}
+
+	name := nav.LocalName()
+
+	buffer.WriteString("<")
+	buffer.WriteString(name)
+
+	withAttributes := false
+	for nav.MoveToNextAttribute() {
+		buffer.WriteString(fmt.Sprintf(` %s="%s"`, nav.LocalName(), nav.Value()))
+		withAttributes = true
+	}
+
+	if withAttributes {
+		nav.MoveToParent()
+	}
+
+	if nav.MoveToChild() == false {
+		buffer.WriteString(" />")
+		return
+	}
+
+	buffer.WriteString(">")
+
+	Render(buffer, nav)
+
+	for nav.MoveToNext() {
+		Render(buffer, nav)
+	}
+
+	buffer.WriteString("</" + name + ">")
+	nav.MoveToParent()
 }
