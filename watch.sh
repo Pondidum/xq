@@ -1,12 +1,12 @@
 #!/bin/sh
 
-action="go test -v ./..."
+action=${1:-"go test -v ./..."}
 
 chsum1=""
 
 while [[ true ]]
 do
-    chsum2=`find . -type f -exec md5sum {} \;`
+    chsum2=`find . -iname "*.go" -type f -exec md5sum {} \;`
     if [[ $chsum1 != $chsum2 ]] ; then
         eval "$action"
         chsum1=$chsum2
