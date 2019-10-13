@@ -8,6 +8,7 @@ import (
 
 	"github.com/antchfx/xmlquery"
 	"github.com/antchfx/xpath"
+	"github.com/mitchellh/cli"
 	"github.com/posener/complete"
 )
 
@@ -23,6 +24,12 @@ Usage: xq read [options] <xpath> <file_path>
 
   If the supplied path is "-", then the file is read from stdin.  Otherwise
   it is read from the path specified.
+
+Read Options:
+
+  --output
+    Optional. Specifies the format to output the xpath result in.
+    Valid values: xml, raw. Defaults to xml.
 `
 
 	return strings.TrimSpace(helpText)
@@ -33,7 +40,9 @@ func (c *ReadCommand) Synopsis() string {
 }
 
 func (c *ReadCommand) AutocompleteFlags() complete.Flags {
-	return complete.Flags{}
+	return complete.Flags{
+		"--output": complete.PredictSet("raw", "xml"),
+	}
 }
 
 func (c *ReadCommand) AutocompleteArgs() complete.Predictor {
@@ -44,8 +53,11 @@ func (c *ReadCommand) Name() string { return "read" }
 
 func (c *ReadCommand) Run(args []string) int {
 
+	var output string
+
 	flags := c.FlagSet(c.Name())
 	flags.Usage = func() { c.UI.Output(c.Help()) }
+	flags.StringVar(&output, "output", "xml", "")
 
 	if err := flags.Parse(args); err != nil {
 		return 1
@@ -84,7 +96,7 @@ func (c *ReadCommand) Run(args []string) int {
 	if ok {
 		for iterator.MoveNext() {
 			navigator := iterator.Current()
-			c.UI.Output(navigator.Value())
+			writeOutput(c.UI, output, navigator)
 		}
 	} else {
 		c.UI.Output(fmt.Sprintf("%+v", result))
@@ -93,7 +105,21 @@ func (c *ReadCommand) Run(args []string) int {
 	return 0
 }
 
-func Render(buffer *bytes.Buffer, nav xpath.NodeNavigator) {
+func writeOutput(ui cli.Ui, mode string, navigator xpath.NodeNavigator) {
+
+	switch mode {
+	case "xml":
+		var buffer bytes.Buffer
+		render(&buffer, navigator)
+
+		ui.Output(buffer.String())
+	case "raw":
+		ui.Output(navigator.Value())
+	}
+
+}
+
+func render(buffer *bytes.Buffer, nav xpath.NodeNavigator) {
 
 	if nav.NodeType() == xpath.TextNode {
 		xml.EscapeText(buffer, []byte(strings.TrimSpace(nav.Value())))
@@ -101,6 +127,11 @@ func Render(buffer *bytes.Buffer, nav xpath.NodeNavigator) {
 	}
 
 	name := nav.LocalName()
+
+	if nav.NodeType() == xpath.AttributeNode {
+		buffer.WriteString(fmt.Sprintf("<%s>%s</%s>", name, nav.Value(), name))
+		return
+	}
 
 	buffer.WriteString("<")
 	buffer.WriteString(name)
@@ -122,10 +153,10 @@ func Render(buffer *bytes.Buffer, nav xpath.NodeNavigator) {
 
 	buffer.WriteString(">")
 
-	Render(buffer, nav)
+	render(buffer, nav)
 
 	for nav.MoveToNext() {
-		Render(buffer, nav)
+		render(buffer, nav)
 	}
 
 	buffer.WriteString("</" + name + ">")
